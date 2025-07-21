@@ -1,0 +1,72 @@
+const int leftPin = 2;        // Left position input
+const int straightPin = 3;    // Straight position input
+const int rightPin = 4;       // Right position input
+const int outputPin1 = 8;     // Servo control output 1
+const int outputPin2 = 9;     // Servo control output 2
+
+int lastPosition = 0;                     // 1: Left, 2: Straight, 3: Right
+unsigned long transitionStartTime = 0;    // For millis() delay
+bool inTransition = false;                // Track if in forced mid-transition
+
+void setup() {
+  Serial.begin(9600);                     // Debugging output
+  pinMode(leftPin, INPUT_PULLUP);
+  pinMode(straightPin, INPUT_PULLUP);
+  pinMode(rightPin, INPUT_PULLUP);
+  pinMode(outputPin1, OUTPUT);
+  pinMode(outputPin2, OUTPUT);
+}
+
+void loop() {
+  int currentPosition = getSwitchPosition();
+
+  // If switch moved
+  if (currentPosition != lastPosition) {
+    Serial.print("Switch position: ");
+    if (currentPosition == 1) Serial.println("Left");
+    else if (currentPosition == 2) Serial.println("Straight");
+    else if (currentPosition == 3) Serial.println("Right");
+
+    // Force straight transition between opposite ends
+    if ((lastPosition == 1 && currentPosition == 3) ||
+        (lastPosition == 3 && currentPosition == 1)) {
+      setOutputs(2);  // Force Straight
+      transitionStartTime = millis();
+      inTransition = true;
+    } else {
+      setOutputs(currentPosition);
+    }
+
+    lastPosition = currentPosition;
+  }
+
+  // Handle delayed final move from mid-transition
+  if (inTransition && millis() - transitionStartTime >= 2000) {
+    setOutputs(lastPosition);
+    inTransition = false;
+  }
+}
+
+int getSwitchPosition() {
+  if (digitalRead(leftPin) == LOW) return 1;
+  if (digitalRead(straightPin) == LOW) return 2;
+  if (digitalRead(rightPin) == LOW) return 3;
+  return lastPosition; // fallback if no pin is LOW
+}
+
+void setOutputs(int position) {
+  switch (position) {
+    case 1: // Left
+      digitalWrite(outputPin1, LOW);
+      digitalWrite(outputPin2, LOW);
+      break;
+    case 2: // Straight
+      digitalWrite(outputPin1, HIGH);
+      digitalWrite(outputPin2, LOW);
+      break;
+    case 3: // Right
+      digitalWrite(outputPin1, HIGH);
+      digitalWrite(outputPin2, HIGH);
+      break;
+  }
+}
