@@ -15,6 +15,10 @@ void setup() {
   pinMode(rightPin, INPUT_PULLUP);
   pinMode(outputPin1, OUTPUT);
   pinMode(outputPin2, OUTPUT);
+
+  // Align outputs with the current switch state at startup
+  lastPosition = getSwitchPosition();
+  setOutputs(lastPosition);
 }
 
 void loop() {
